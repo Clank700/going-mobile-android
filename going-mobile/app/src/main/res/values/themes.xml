@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Game" parent="android:Theme.Black.NoTitleBar.Fullscreen">
+        <!-- Extend content into display cutout areas -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

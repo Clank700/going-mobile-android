@@ -1,0 +1,45 @@
+# User-provided game content (NOT distributed with this repository)
+# Users must provide their own legal copy of the game and run tools/prepare-game.bat
+
+# Game assets extracted by user
+going-mobile/app/src/main/assets/*
+!going-mobile/app/src/main/assets/.gitkeep
+
+# Game source code extracted by user
+going-mobile/app/src/main/java/com/ratchetclank/goingmobile/*
+!going-mobile/app/src/main/java/com/ratchetclank/goingmobile/.gitkeep
+!going-mobile/app/src/main/java/com/ratchetclank/goingmobile/GoingMobileActivity.java
+going-mobile/app/src/main/java/summary.txt
+
+# Local user-provided JAR staging, if needed during experiments
+going-mobile/app/libs/*
+!going-mobile/app/libs/.gitkeep
+
+# Original game files
+*.jar
+!cfr.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.jad
+Games/
+
+# Build outputs
+**/build/
+*.apk
+*.aab
+
+# Temp directories
+temp_jar/
+jadx_output/
+extracted/
+.gradle-user-home/
+build-last.log
+
+# IDE files
+.idea/
+*.iml
+.gradle/
+local.properties
+
+# OS files
+.DS_Store
+Thumbs.db
