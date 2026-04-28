@@ -421,6 +421,43 @@ RecordStore recordStore = RecordStore.openRecordStore((String)"RatchetJavBig", (
     }
 }
 
+function Resolve-AndroidSdkPath {
+    $candidates = @()
+    if ($env:ANDROID_HOME) { $candidates += $env:ANDROID_HOME }
+    if ($env:ANDROID_SDK_ROOT) { $candidates += $env:ANDROID_SDK_ROOT }
+    if ($env:LOCALAPPDATA) { $candidates += (Join-Path $env:LOCALAPPDATA "Android\Sdk") }
+    if ($env:USERPROFILE) { $candidates += (Join-Path $env:USERPROFILE "AppData\Local\Android\Sdk") }
+
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        if (Test-Path -LiteralPath (Join-Path $candidate "platforms") -PathType Container) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+
+    return $null
+}
+
+function Ensure-LocalProperties {
+    param([string]$ProjectRoot)
+
+    $localProperties = Join-Path $ProjectRoot "local.properties"
+    if (Test-Path -LiteralPath $localProperties -PathType Leaf) {
+        return
+    }
+
+    $sdkPath = Resolve-AndroidSdkPath
+    if (-not $sdkPath) {
+        Write-Warning "Android SDK was not found automatically. If the build fails, open the project in Android Studio once or create local.properties with sdk.dir=YOUR_ANDROID_SDK_PATH."
+        return
+    }
+
+    $sdkPathForGradle = $sdkPath.Replace("\", "/")
+    "sdk.dir=$sdkPathForGradle" | Set-Content -LiteralPath $localProperties
+    Write-Host "Created local.properties for Android SDK:"
+    Write-Host "  $sdkPath"
+}
+
 $toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = (Resolve-Path (Join-Path $toolsDir "..")).Path
 $appDir = Join-Path $projectRoot "going-mobile\app"
@@ -431,6 +468,11 @@ $sourceDir = Join-Path $javaRoot "com\ratchetclank\goingmobile"
 $tempDir = Join-Path $projectRoot "extracted"
 $renamedJar = Join-Path $tempDir "going-mobile-renamed.jar"
 $cfrJar = Join-Path $projectRoot "cfr.jar"
+$runLog = Join-Path $projectRoot "prepare-game-last-run.txt"
+$buildLog = Join-Path $projectRoot "prepare-game-build.log"
+$buildAttempted = $false
+$buildSucceeded = $false
+$buildMessage = "Build was not requested."
 
 $resolvedJar = Resolve-JarPath $JarPath
 $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $resolvedJar
@@ -483,7 +525,7 @@ if (-not $env:JAVA_HOME) {
     }
 }
 $javaExe = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME "bin\java.exe" } else { "java" }
-& $javaExe -jar $cfrJar $renamedJar --outputdir $javaRoot --caseinsensitivefs true
+& $javaExe -jar $cfrJar $renamedJar --outputdir $javaRoot --caseinsensitivefs true --silent true
 if ($LASTEXITCODE -ne 0) {
     throw "CFR decompilation failed."
 }
@@ -500,19 +542,42 @@ Remove-Item -LiteralPath (Join-Path $libsDir "going-mobile.jar") -Force -ErrorAc
 if ($Build) {
     Write-Host ""
     Write-Host "Building debug APK..."
+    Ensure-LocalProperties $projectRoot
+    $buildAttempted = $true
     Push-Location $projectRoot
     try {
         $wrapper = Join-Path $projectRoot "gradlew.bat"
         $wrapperJar = Join-Path $projectRoot "gradle\wrapper\gradle-wrapper.jar"
+        $oldErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         if ((Test-Path -LiteralPath $wrapper) -and (Test-Path -LiteralPath $wrapperJar)) {
-            & $wrapper ":going-mobile:app:assembleDebug"
+            try {
+                $buildOutput = @(& $wrapper ":going-mobile:app:assembleDebug" 2>&1)
+            } finally {
+                $ErrorActionPreference = $oldErrorActionPreference
+            }
         } elseif (Get-Command "gradle" -ErrorAction SilentlyContinue) {
-            & gradle ":going-mobile:app:assembleDebug"
+            try {
+                $buildOutput = @(& gradle ":going-mobile:app:assembleDebug" 2>&1)
+            } finally {
+                $ErrorActionPreference = $oldErrorActionPreference
+            }
         } else {
-            Write-Warning "No Gradle wrapper jar or system Gradle found. Open the project in Android Studio to build."
+            $ErrorActionPreference = $oldErrorActionPreference
+            $buildOutput = @("No Gradle wrapper jar or system Gradle found. Open the project in Android Studio to build.")
+            $LASTEXITCODE = 1
         }
+        $buildOutput | Set-Content -LiteralPath $buildLog
         if ($LASTEXITCODE -ne 0) {
-            throw "Gradle build failed."
+            $buildMessage = "APK build failed. The project was prepared; open it in Android Studio or check prepare-game-build.log."
+            Write-Warning $buildMessage
+            Write-Host ""
+            Write-Host "Last build output lines:"
+            $buildOutput | Select-Object -Last 35 | ForEach-Object { Write-Host $_ }
+        } else {
+            $buildSucceeded = $true
+            $buildMessage = "APK build completed successfully."
+            Write-Host $buildMessage
         }
     } finally {
         Pop-Location
@@ -521,6 +586,50 @@ if ($Build) {
 
 Write-Host ""
 Write-Host "Done."
-Write-Host "Generated source: going-mobile/app/src/main/java/com/ratchetclank/goingmobile"
-Write-Host "Assets:           going-mobile/app/src/main/assets"
-Write-Host "Next: open this folder in Android Studio and run the app, or run Gradle assembleDebug."
+$apkPath = Join-Path $appDir "build\outputs\apk\debug\app-debug.apk"
+$statusLine = if ($Build -and $buildSucceeded) {
+    "Preparation and APK build completed successfully."
+} elseif ($Build -and -not $buildSucceeded) {
+    "Preparation completed, but APK build did not finish."
+} else {
+    "Preparation completed successfully."
+}
+$summary = @(
+    "Ratchet & Clank: Going Mobile Android Port Kit",
+    "",
+    $statusLine,
+    "",
+    "Project folder:",
+    "  $projectRoot",
+    "",
+    "Generated source:",
+    "  $sourceDir",
+    "",
+    "Extracted assets:",
+    "  $assetsDir",
+    "",
+    "Build command:",
+    "  gradlew.bat :going-mobile:app:assembleDebug",
+    "",
+    "Build status:",
+    "  $buildMessage",
+    "",
+    "Build log:",
+    "  $buildLog",
+    "",
+    "Debug APK after building:",
+    "  $apkPath",
+    "",
+    "Next step:",
+    "  If the APK exists, install it on your Android device.",
+    "  If the APK was not built, open the project folder in Android Studio and run the app."
+)
+$summary | Set-Content -LiteralPath $runLog
+$summary | ForEach-Object { Write-Host $_ }
+Write-Host ""
+Write-Host "Saved this summary to:"
+Write-Host "  $runLog"
+
+if ($Build -and -not $buildSucceeded) {
+    exit 2
+}

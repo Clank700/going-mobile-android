@@ -33,6 +33,8 @@ jadx_output/
 extracted/
 .gradle-user-home/
 build-last.log
+prepare-game-last-run.txt
+prepare-game-build.log
 
 # IDE files
 .idea/

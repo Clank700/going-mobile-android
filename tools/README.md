@@ -1,7 +1,7 @@
 # Preparation Tool
 
-`prepare-game.bat` turns a user-provided J2ME JAR into a buildable local Android
-project.
+`prepare-game.bat` turns a user-provided J2ME JAR into a local Android project
+and tries to build a debug APK.
 
 The older `extract-game-assets.bat` name is kept as a wrapper for convenience,
 but the real entry point is:
@@ -9,6 +9,10 @@ but the real entry point is:
 ```bat
 tools\prepare-game.bat "C:\path\to\Going Mobile 1.1.0.jar"
 ```
+
+You can also drag and drop the JAR file onto `prepare-game.bat` in File
+Explorer. The window stays open at the end and prints the exact project,
+source, asset, and APK paths.
 
 ## Inputs
 
@@ -28,6 +32,17 @@ going-mobile/app/src/main/java/com/ratchetclank/goingmobile/
 The app wrapper `GoingMobileActivity.java` remains tracked. The generated source
 files sit beside it locally after preparation.
 
+The tool also writes a local ignored summary file:
+
+```text
+prepare-game-last-run.txt
+prepare-game-build.log
+```
+
+Open that file if you launched the tool by double-clicking or drag-and-drop and
+want to check what happened afterward. If APK building fails, the full Gradle
+output is saved in `prepare-game-build.log`.
+
 ## Pipeline
 
 1. Validate the JAR path and print its SHA-256.
@@ -36,7 +51,9 @@ files sit beside it locally after preparation.
    names.
 4. Run CFR to decompile the remapped JAR.
 5. Apply compatibility fixups for Android and known decompiler mistakes.
-6. Delete temporary extraction files unless `-KeepIntermediate` is passed.
+6. Try to find the Android SDK and create ignored `local.properties` if needed.
+7. Build `going-mobile/app/build/outputs/apk/debug/app-debug.apk`.
+8. Delete temporary extraction files unless `-KeepIntermediate` is passed.
 
 ## Options
 
@@ -46,7 +63,8 @@ tools\prepare-game.ps1 "C:\path\to\Going Mobile 1.1.0.jar" -Build
 tools\prepare-game.ps1 "C:\path\to\Going Mobile 1.1.0.jar" -KeepIntermediate
 ```
 
-`-Build` runs `gradlew.bat :going-mobile:app:assembleDebug` after generation.
+`prepare-game.bat` uses `-Build` automatically. If you run the PowerShell script
+directly, add `-Build` when you want an APK.
 
 `-KeepIntermediate` leaves the temporary `extracted/` directory in place for
 debugging the tool.
@@ -77,7 +95,9 @@ If Java cannot be found, run from an Android Studio terminal or set `JAVA_HOME`
 to a JDK. Android Studio's bundled JBR works.
 
 If the Android build fails after generation, compare the generated file and line
-with `prepare-game.ps1`. Most failures should be solved by another source fixup.
+with `prepare-game.ps1`. If the failure says Android SDK or Build Tools are
+missing, open the project in Android Studio and let it install the requested
+components.
 
 If the game crashes on loading, run a fresh prepare step first. The working
 workflow generates source, not direct Android execution of the original JAR.

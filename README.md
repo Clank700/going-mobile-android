@@ -40,12 +40,32 @@ Requirements:
 - Java available through Android Studio or `JAVA_HOME`
 - A legal copy of `Going Mobile 1.1.0.jar`
 
+For normal Windows users:
+
+1. Download and unzip this repository.
+2. Drag `Going Mobile 1.1.0.jar` onto `tools\prepare-game.bat`.
+3. Wait for the window to say where the APK was written.
+4. Install `going-mobile\app\build\outputs\apk\debug\app-debug.apk` on your
+   Android device.
+
+If the APK build fails, the project was still prepared. Open the unzipped
+project folder in Android Studio and run the app from there.
+
+For terminal users:
+
 Run:
 
 ```bat
 tools\prepare-game.bat "C:\path\to\Going Mobile 1.1.0.jar"
-gradlew.bat :going-mobile:app:assembleDebug
 ```
+
+On Windows, you can also drag and drop `Going Mobile 1.1.0.jar` onto
+`tools\prepare-game.bat`. The window stays open and tells you exactly where the
+generated files and APK were written.
+
+`prepare-game.bat` prepares the project and tries to build the debug APK in one
+step. If Android build tools are not found, open the project folder in Android
+Studio and run the app from there.
 
 The debug APK is written to:
 
