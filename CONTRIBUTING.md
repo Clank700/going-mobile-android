@@ -1,6 +1,13 @@
-# Contributing
+# Forking And Contributions
 
-Thanks for helping make this easier to build and understand.
+This repository is published as-is for the community.
+
+The owner is not accepting issues, feature requests, bug reports, pull requests,
+patches, or support requests. Please do not send fixes or additions upstream.
+Fork the repository instead and maintain your own version.
+
+This file exists for people who fork the project and want to keep their own
+work clean and legally safer.
 
 ## The Main Rule
 
@@ -14,13 +21,12 @@ That includes:
 - APKs or AABs
 - Large pasted decompiled source snippets in docs or issues
 
-## Good Contributions
+## Good Fork Work
 
 - Fixes to `j2me-compat/`
 - Improvements to `tools/prepare-game.ps1`
 - Android build and device compatibility fixes
 - Documentation for known obfuscated symbols
-- Small, focused bug reports with reproduction steps
 
 ## Working On Generated Source Bugs
 
@@ -37,9 +43,10 @@ If you need to change generated game code, first prove the local edit works.
 Then move the fix into `tools/prepare-game.ps1` so it is applied every time a
 user regenerates from their own JAR.
 
-## Bug Reports
+## Bug Reports In Forks
 
-Please include:
+If you maintain a fork and choose to accept bug reports, useful reports should
+include:
 
 - Device model
 - Android version

@@ -7,6 +7,16 @@ It does not contain the game JAR, extracted assets, decompiled game source,
 or APKs. Users bring their own legal copy of the original J2ME JAR and run
 the local preparation tool.
 
+## Project Status
+
+This is a GPT-5.5 project, created as a public release of a local Android
+porting workflow.
+
+The repository is published as-is for the community to study, use, and fork.
+It is not actively maintained, and the owner is not accepting feature requests,
+bug reports, pull requests, or support requests. If you want to improve it,
+please fork it and continue from there.
+
 ## What This Is
 
 - A native Android project, not a J2ME emulator.
@@ -115,6 +125,10 @@ Use these docs as your map:
 - [DEOBFUSCATION.md](DEOBFUSCATION.md) tracks known class and symbol meanings.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains how to contribute without adding
   proprietary game content.
+
+This repository is not accepting contributions upstream. The development notes
+are kept so fork maintainers can understand the project and continue their own
+versions cleanly.
 
 The generated game source is useful for local debugging, but do not commit it.
 Portable fixes should usually go into `tools/prepare-game.ps1` or
